@@ -67,3 +67,62 @@ app.post("/login", async (req, res) => {
     client.release();
   }
 });
+
+ //Mostrar todos os usuarios
+ app.get("/users", async (req, res) => {
+  const client = await pool.connect();
+
+  try {
+    const { rows } = await client.query("SELECT * FROM users");
+    console.table(rows);
+    res.status(200).send(rows);
+  } catch (error) {
+    console.error(error);
+    res.status(500).send("Erro de conexão com o servidor");
+  } finally {
+    client.release();
+  }
+});
+
+//Criar novo Usuario
+app.post("/users", async (req, res) => {
+  const client = await pool.connect();
+
+  try {
+    const { id, name, email, password } = req.body;
+
+    if (!id || !name || !email || !password) {
+      return res.status(401).send("Informe o id, nome, email e senha");
+    }
+
+    const existingUser = await client.query(
+      `SELECT FROM users WHERE id=$1`,
+      [id]
+    );
+
+    if (existingUser.rows.length > 0) {
+      return res.status(401).send("Usuário já cadastrado");
+    }
+
+    await client.query(
+      `INSERT INTO users (id, email, password, nome) VALUES ($1, $2, $3, $4)`,
+      [id, email, password, name]
+    );
+
+    res.status(200).send({
+      msg: "Usuario Cadastrado com sucesso",
+      result: {
+        id,
+        email,
+        password,
+        name,
+      },
+    });
+
+  } catch (error) {
+    console.error(error);
+    res.status(500).send("Erro de conexão com o servidor");
+  } finally {
+    client.release();
+  }
+});
