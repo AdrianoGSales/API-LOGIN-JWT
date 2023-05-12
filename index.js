@@ -25,3 +25,45 @@ app.get("/", (req, res) =>{ /*/ homepage /*/
     res.send (`Seja Bem vindo!!!`)
 });
 
+//CHAMADA LOGIN
+app.post("/login", async (req, res) => {
+  const { email, password } = req.body;
+
+  const client = await pool.connect();
+
+  try {
+    const findUser = await client.query(
+      `SELECT * FROM users WHERE email=$1`,
+      [email]
+    );
+
+    if (findUser.rows.length === 0) {
+      return res.status(401).json({ error: 'Usuário não existe' });
+    }
+
+    if (findUser.rows[0].password !== password) {
+      return res.status(401).json({ error: 'Senha incorreta' });
+    }
+
+    const { id, name } = findUser.rows[0];
+
+    const token = jwt.sign({ id }, process.env.SECRET_JWT, {
+      expiresIn: process.env.EXPIRESIN_JWT,
+    });
+
+    return res.status(200).json({
+      user: {
+        id,
+        name,
+        email,
+      },
+      token,
+    });
+
+  } catch (error) {
+    console.error(error);
+    res.status(500).send("Erro de conexão com o servidor");
+  } finally {
+    client.release();
+  }
+});
