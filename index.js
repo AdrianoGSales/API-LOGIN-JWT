@@ -162,3 +162,25 @@ app.put("/users/:id", async (req, res) => {
     res.status(500).send("Erro de conexão com o servidor");
   }
 });
+
+//Deletar usuario por Id
+app.delete("/users/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+    if (!id) {
+      return res.status(401).send("Id não informado.");
+    }
+
+    const client = await pool.connect();
+    const del = await client.query("DELETE FROM users WHERE id=$1", [id]);
+
+    if (del.rowCount === 1) {
+      return res.status(200).send("Usuário deletado.");
+    } else {
+      return res.status(401).send("Usuário não encontrado.");
+    }
+  } catch (error) {
+    console.error(error);
+    res.status(500).send("Erro de conexão com o servidor");
+  }
+});  
