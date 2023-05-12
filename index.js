@@ -126,3 +126,39 @@ app.post("/users", async (req, res) => {
     client.release();
   }
 });
+
+//Alterar usuario por Id
+app.put("/users/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { name, email, password } = req.body;
+
+    if (!id || !name) {
+      return res.status(401).send("Campos obrigatorios vazios.");
+    }
+
+    const client = await pool.connect();
+    const user = await client.query("SELECT * FROM users WHERE id=$1", [id]);
+    if (user.rows.length === 0) {
+      return res.status(401).send("Usuário não encontrado.");
+    }
+
+    await client.query(
+      "UPDATE users SET nome=$1, email=$2, password=$3 WHERE id=$4",
+      [name, email, password, id]
+    );
+
+    res.status(200).send({
+      msg: "Usuário atualizado com sucesso.",
+      result: {
+        id,
+        name,
+        email,
+        password,
+      },
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).send("Erro de conexão com o servidor");
+  }
+});
